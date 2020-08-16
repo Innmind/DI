@@ -19,12 +19,12 @@
     },
     "autoload": {
         "psr-4": {
-            "innmind\\di\\": "src/"
+            "Innmind\\DI\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\innmind\\di\\": "tests/"
+            "Tests\\Innmind\\DI\\": "tests/"
         }
     },
     "require-dev": {
