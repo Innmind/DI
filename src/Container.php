@@ -3,7 +3,10 @@ declare(strict_types = 1);
 
 namespace Innmind\DI;
 
-use Innmind\DI\Exception\ServiceNotFound;
+use Innmind\DI\Exception\{
+    ServiceNotFound,
+    CircularDependency,
+};
 
 final class Container implements ServiceLocator
 {
@@ -11,6 +14,8 @@ final class Container implements ServiceLocator
     private array $definitions = [];
     /** @var array<string, object> */
     private array $services = [];
+    /** @var list<string> */
+    private array $building = [];
 
     /**
      * This operation is immutable to prevent mixing adding definitions and
@@ -33,6 +38,20 @@ final class Container implements ServiceLocator
             throw new ServiceNotFound($name);
         }
 
-        return $this->services[$name] ?? $this->services[$name] = ($this->definitions[$name])($this);
+        if (\in_array($name, $this->building, true)) {
+            $path = $this->building;
+            $path[] = $name;
+            $this->building = [];
+
+            throw new CircularDependency(\implode(' > ', $path));
+        }
+
+        $this->building[] = $name;
+
+        try {
+            return $this->services[$name] ?? $this->services[$name] = ($this->definitions[$name])($this);
+        } finally {
+            \array_pop($this->building);
+        }
     }
 }

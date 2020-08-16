@@ -7,6 +7,7 @@ use Innmind\DI\{
     Container,
     ServiceLocator,
     Exception\ServiceNotFound,
+    Exception\CircularDependency,
 };
 use PHPUnit\Framework\TestCase;
 use Innmind\BlackBox\{
@@ -88,6 +89,28 @@ class ContainerTest extends TestCase
                     ->add($dependency, fn() => new \stdClass);
 
                 $this->assertSame($container($dependency), $container($name));
+            });
+    }
+
+    public function testCircularDependenciesAreIntercepted()
+    {
+        $this
+            ->forAll(
+                Set\Unicode::strings(),
+                Set\Unicode::strings(),
+            )
+            ->filter(fn($a, $b) => $a !== $b)
+            ->then(function($name, $dependency) {
+                $container = (new Container)
+                    ->add($name, fn($get) => $get($dependency))
+                    ->add($dependency, fn($get) => $get($name));
+
+                try {
+                    $container($name);
+                    $this->fail('it should throw');
+                } catch (CircularDependency $e) {
+                    $this->assertSame("$name > $dependency > $name", $e->getMessage());
+                }
             });
     }
 }
