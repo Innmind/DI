@@ -30,7 +30,7 @@ class ContainerTest extends TestCase
             ->forAll(Set\Unicode::strings())
             ->then(function($name) {
                 $container = new Container;
-                $container2 = $container->add($name, fn() => new \stdClass);
+                $container2 = $container->add($name, static fn() => new \stdClass);
 
                 $this->assertInstanceOf(Container::class, $container2);
                 $this->assertNotSame($container2, $container);
@@ -51,7 +51,7 @@ class ContainerTest extends TestCase
         $this
             ->forAll(Set\Unicode::strings())
             ->then(function($name) {
-                $container = (new Container)->add($name, fn() => new \stdClass);
+                $container = (new Container)->add($name, static fn() => new \stdClass);
 
                 $this->assertSame($container($name), $container($name));
             });
@@ -67,9 +67,9 @@ class ContainerTest extends TestCase
             ->filter(fn($a, $b) => $a !== $b)
             ->then(function($a, $b) {
                 $container = new Container;
-                $container2 = $container->add($a, fn() => new \stdClass);
+                $container2 = $container->add($a, static fn() => new \stdClass);
                 $firstVersion = $container2($a);
-                $container3 = $container2->add($b, fn() => new \stdClass);
+                $container3 = $container2->add($b, static fn() => new \stdClass);
 
                 $this->assertNotSame($firstVersion, $container3($a));
             });
@@ -85,8 +85,8 @@ class ContainerTest extends TestCase
             ->filter(fn($a, $b) => $a !== $b)
             ->then(function($name, $dependency) {
                 $container = (new Container)
-                    ->add($name, fn($get) => $get($dependency))
-                    ->add($dependency, fn() => new \stdClass);
+                    ->add($name, static fn($get) => $get($dependency))
+                    ->add($dependency, static fn() => new \stdClass);
 
                 $this->assertSame($container($dependency), $container($name));
             });
@@ -102,8 +102,8 @@ class ContainerTest extends TestCase
             ->filter(fn($a, $b) => $a !== $b)
             ->then(function($name, $dependency) {
                 $container = (new Container)
-                    ->add($name, fn($get) => $get($dependency))
-                    ->add($dependency, fn($get) => $get($name));
+                    ->add($name, static fn($get) => $get($dependency))
+                    ->add($dependency, static fn($get) => $get($name));
 
                 try {
                     $container($name);

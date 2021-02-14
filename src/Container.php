@@ -17,21 +17,6 @@ final class Container implements ServiceLocator
     /** @var list<string> */
     private array $building = [];
 
-    /**
-     * This operation is immutable to prevent mixing adding definitions and
-     * building already defined services.
-     *
-     * @param callable(ServiceLocator): object $definition
-     */
-    public function add(string $name, callable $definition): self
-    {
-        $self = clone $this;
-        $self->definitions[$name] = $definition;
-        $self->services = [];
-
-        return $self;
-    }
-
     public function __invoke(string $name): object
     {
         if (!\array_key_exists($name, $this->definitions)) {
@@ -53,5 +38,20 @@ final class Container implements ServiceLocator
         } finally {
             \array_pop($this->building);
         }
+    }
+
+    /**
+     * This operation is immutable to prevent mixing adding definitions and
+     * building already defined services.
+     *
+     * @param callable(ServiceLocator): object $definition
+     */
+    public function add(string $name, callable $definition): self
+    {
+        $self = clone $this;
+        $self->definitions[$name] = $definition;
+        $self->services = [];
+
+        return $self;
     }
 }
