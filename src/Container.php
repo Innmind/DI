@@ -48,7 +48,7 @@ final class Container
         $this->building[] = $name;
 
         try {
-            return $this->services[$name] ?? $this->services[$name] = ($this->definitions[$name])($this);
+            return $this->services[$name] ??= ($this->definitions[$name])($this);
         } finally {
             \array_pop($this->building);
         }
