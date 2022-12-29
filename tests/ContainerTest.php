@@ -4,8 +4,8 @@ declare(strict_types = 1);
 namespace Tests\Innmind\DI;
 
 use Innmind\DI\{
+    Builder,
     Container,
-    ServiceLocator,
     Exception\ServiceNotFound,
     Exception\CircularDependency,
 };
@@ -21,7 +21,7 @@ class ContainerTest extends TestCase
 
     public function testInterface()
     {
-        $this->assertInstanceOf(ServiceLocator::class, Container::new()->build());
+        $this->assertInstanceOf(Container::class, Builder::new()->build());
     }
 
     public function testConstructingTheDefinitionsIsImmutable()
@@ -29,10 +29,10 @@ class ContainerTest extends TestCase
         $this
             ->forAll(Set\Unicode::strings())
             ->then(function($name) {
-                $container = Container::new();
+                $container = Builder::new();
                 $container2 = $container->add($name, static fn() => new \stdClass);
 
-                $this->assertInstanceOf(Container::class, $container2);
+                $this->assertInstanceOf(Builder::class, $container2);
                 $this->assertNotSame($container2, $container);
                 $this->assertInstanceOf(\stdClass::class, $container2->build()($name));
 
@@ -51,7 +51,7 @@ class ContainerTest extends TestCase
         $this
             ->forAll(Set\Unicode::strings())
             ->then(function($name) {
-                $container = Container::new()
+                $container = Builder::new()
                     ->add($name, static fn() => new \stdClass)
                     ->build();
 
@@ -68,7 +68,7 @@ class ContainerTest extends TestCase
             )
             ->filter(fn($a, $b) => $a !== $b)
             ->then(function($name, $dependency) {
-                $container = Container::new()
+                $container = Builder::new()
                     ->add($name, static fn($get) => $get($dependency))
                     ->add($dependency, static fn() => new \stdClass)
                     ->build();
@@ -86,7 +86,7 @@ class ContainerTest extends TestCase
             )
             ->filter(fn($a, $b) => $a !== $b)
             ->then(function($name, $dependency) {
-                $container = Container::new()
+                $container = Builder::new()
                     ->add($name, static fn($get) => $get($dependency))
                     ->add($dependency, static fn($get) => $get($name))
                     ->build();
