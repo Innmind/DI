@@ -21,7 +21,7 @@ class ContainerTest extends TestCase
 
     public function testInterface()
     {
-        $this->assertInstanceOf(ServiceLocator::class, new Container);
+        $this->assertInstanceOf(ServiceLocator::class, Container::new()->build());
     }
 
     public function testConstructingTheDefinitionsIsImmutable()
@@ -29,15 +29,15 @@ class ContainerTest extends TestCase
         $this
             ->forAll(Set\Unicode::strings())
             ->then(function($name) {
-                $container = new Container;
+                $container = Container::new();
                 $container2 = $container->add($name, static fn() => new \stdClass);
 
                 $this->assertInstanceOf(Container::class, $container2);
                 $this->assertNotSame($container2, $container);
-                $this->assertInstanceOf(\stdClass::class, $container2($name));
+                $this->assertInstanceOf(\stdClass::class, $container2->build()($name));
 
                 try {
-                    $container($name);
+                    $container->build()($name);
                     $this->fail('it should throw');
                 } catch (\Exception $e) {
                     $this->assertInstanceOf(ServiceNotFound::class, $e);
@@ -51,27 +51,11 @@ class ContainerTest extends TestCase
         $this
             ->forAll(Set\Unicode::strings())
             ->then(function($name) {
-                $container = (new Container)->add($name, static fn() => new \stdClass);
+                $container = Container::new()
+                    ->add($name, static fn() => new \stdClass)
+                    ->build();
 
                 $this->assertSame($container($name), $container($name));
-            });
-    }
-
-    public function testServicesAreNotKeptBetweenVersionsOfTheContainer()
-    {
-        $this
-            ->forAll(
-                Set\Unicode::strings(),
-                Set\Unicode::strings(),
-            )
-            ->filter(fn($a, $b) => $a !== $b)
-            ->then(function($a, $b) {
-                $container = new Container;
-                $container2 = $container->add($a, static fn() => new \stdClass);
-                $firstVersion = $container2($a);
-                $container3 = $container2->add($b, static fn() => new \stdClass);
-
-                $this->assertNotSame($firstVersion, $container3($a));
             });
     }
 
@@ -84,9 +68,10 @@ class ContainerTest extends TestCase
             )
             ->filter(fn($a, $b) => $a !== $b)
             ->then(function($name, $dependency) {
-                $container = (new Container)
+                $container = Container::new()
                     ->add($name, static fn($get) => $get($dependency))
-                    ->add($dependency, static fn() => new \stdClass);
+                    ->add($dependency, static fn() => new \stdClass)
+                    ->build();
 
                 $this->assertSame($container($dependency), $container($name));
             });
@@ -101,9 +86,10 @@ class ContainerTest extends TestCase
             )
             ->filter(fn($a, $b) => $a !== $b)
             ->then(function($name, $dependency) {
-                $container = (new Container)
+                $container = Container::new()
                     ->add($name, static fn($get) => $get($dependency))
-                    ->add($dependency, static fn($get) => $get($name));
+                    ->add($dependency, static fn($get) => $get($name))
+                    ->build();
 
                 try {
                     $container($name);
