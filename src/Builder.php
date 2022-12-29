@@ -3,6 +3,9 @@ declare(strict_types = 1);
 
 namespace Innmind\DI;
 
+/**
+ * @psalm-immutable
+ */
 final class Builder
 {
     /** @var array<string, callable(Container): object> */
@@ -16,15 +19,15 @@ final class Builder
         $this->definitions = $definitions;
     }
 
+    /**
+     * @psalm-pure
+     */
     public static function new(): self
     {
         return new self([]);
     }
 
     /**
-     * This operation is immutable to prevent mixing adding definitions and
-     * building already defined services.
-     *
      * @param callable(Container): object $definition
      */
     public function add(string $name, callable $definition): self

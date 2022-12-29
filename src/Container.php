@@ -18,6 +18,8 @@ final class Container
     private array $building = [];
 
     /**
+     * @psalm-mutation-free
+     *
      * @param array<string, callable(self): object> $definitions
      */
     private function __construct(array $definitions)
@@ -53,6 +55,8 @@ final class Container
     }
 
     /**
+     * @psalm-pure
+     *
      * @param array<string, callable(self): object> $definitions
      */
     public static function of(array $definitions): self
