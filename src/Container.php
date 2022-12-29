@@ -8,15 +8,29 @@ use Innmind\DI\Exception\{
     CircularDependency,
 };
 
-final class Container implements ServiceLocator
+final class Container
 {
-    /** @var array<string, callable(ServiceLocator): object> */
-    private array $definitions = [];
+    /** @var array<string, callable(self): object> */
+    private array $definitions;
     /** @var array<string, object> */
     private array $services = [];
     /** @var list<string> */
     private array $building = [];
 
+    /**
+     * @psalm-mutation-free
+     *
+     * @param array<string, callable(self): object> $definitions
+     */
+    private function __construct(array $definitions)
+    {
+        $this->definitions = $definitions;
+    }
+
+    /**
+     * @throws ServiceNotFound
+     * @throws CircularDependency
+     */
     public function __invoke(string $name): object
     {
         if (!\array_key_exists($name, $this->definitions)) {
@@ -34,24 +48,19 @@ final class Container implements ServiceLocator
         $this->building[] = $name;
 
         try {
-            return $this->services[$name] ?? $this->services[$name] = ($this->definitions[$name])($this);
+            return $this->services[$name] ??= ($this->definitions[$name])($this);
         } finally {
             \array_pop($this->building);
         }
     }
 
     /**
-     * This operation is immutable to prevent mixing adding definitions and
-     * building already defined services.
+     * @psalm-pure
      *
-     * @param callable(ServiceLocator): object $definition
+     * @param array<string, callable(self): object> $definitions
      */
-    public function add(string $name, callable $definition): self
+    public static function of(array $definitions): self
     {
-        $self = clone $this;
-        $self->definitions[$name] = $definition;
-        $self->services = [];
-
-        return $self;
+        return new self($definitions);
     }
 }
