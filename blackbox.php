@@ -10,7 +10,6 @@ use Innmind\BlackBox\{
 };
 
 Application::new($argv)
-    ->disableMemoryLimit()
     ->when(
         \getenv('ENABLE_COVERAGE') !== false,
         static fn(Application $app) => $app->codeCoverage(
