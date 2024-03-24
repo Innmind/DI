@@ -9,9 +9,9 @@ use Innmind\DI\{
     Exception\ServiceNotFound,
     Exception\CircularDependency,
 };
-use PHPUnit\Framework\TestCase;
 use Innmind\BlackBox\{
     PHPUnit\BlackBox,
+    PHPUnit\Framework\TestCase,
     Set,
 };
 
