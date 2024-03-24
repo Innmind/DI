@@ -66,7 +66,7 @@ class ContainerTest extends TestCase
                 Set\Unicode::strings(),
                 Set\Unicode::strings(),
             )
-            ->filter(fn($a, $b) => $a !== $b)
+            ->filter(static fn($a, $b) => $a !== $b)
             ->then(function($name, $dependency) {
                 $container = Builder::new()
                     ->add($name, static fn($get) => $get($dependency))
@@ -84,7 +84,7 @@ class ContainerTest extends TestCase
                 Set\Unicode::strings(),
                 Set\Unicode::strings(),
             )
-            ->filter(fn($a, $b) => $a !== $b)
+            ->filter(static fn($a, $b) => $a !== $b)
             ->then(function($name, $dependency) {
                 $container = Builder::new()
                     ->add($name, static fn($get) => $get($dependency))
