@@ -28,10 +28,15 @@ final class Builder
     }
 
     /**
+     * @param string|Service $name Using a string is deprecated
      * @param callable(Container): object $definition
      */
-    public function add(string $name, callable $definition): self
+    public function add(string|Service $name, callable $definition): self
     {
+        if ($name instanceof Service) {
+            $name = \spl_object_hash($name);
+        }
+
         $definitions = $this->definitions;
         $definitions[$name] = $definition;
 

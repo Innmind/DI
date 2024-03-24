@@ -14,6 +14,7 @@ use Innmind\BlackBox\{
     PHPUnit\Framework\TestCase,
     Set,
 };
+use Fixtures\Innmind\DI\Services;
 
 class ContainerTest extends TestCase
 {
@@ -98,5 +99,15 @@ class ContainerTest extends TestCase
                     $this->assertSame("$name > $dependency > $name", $e->getMessage());
                 }
             });
+    }
+
+    public function testEnumCaseCanBeUsedToReferenceAService()
+    {
+        $expected = new \stdClass;
+        $container = Builder::new()
+            ->add(Services::a, static fn() => $expected)
+            ->build();
+
+        $this->assertSame($expected, $container(Services::a));
     }
 }
