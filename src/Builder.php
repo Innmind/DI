@@ -28,6 +28,7 @@ final class Builder
     }
 
     /**
+     * @param string|Service $name Using a string is deprecated
      * @param callable(Container): object $definition
      */
     public function add(string|Service $name, callable $definition): self

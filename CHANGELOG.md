@@ -9,3 +9,7 @@
 ### Removed
 
 - Support for PHP `8.1`
+
+### Deprecated
+
+- Using `string`s as a service name
