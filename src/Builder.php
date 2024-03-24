@@ -30,8 +30,12 @@ final class Builder
     /**
      * @param callable(Container): object $definition
      */
-    public function add(string $name, callable $definition): self
+    public function add(string|\UnitEnum $name, callable $definition): self
     {
+        if ($name instanceof \UnitEnum) {
+            $name = \spl_object_hash($name);
+        }
+
         $definitions = $this->definitions;
         $definitions[$name] = $definition;
 

@@ -31,8 +31,12 @@ final class Container
      * @throws ServiceNotFound
      * @throws CircularDependency
      */
-    public function __invoke(string $name): object
+    public function __invoke(string|\UnitEnum $name): object
     {
+        if ($name instanceof \UnitEnum) {
+            $name = \spl_object_hash($name);
+        }
+
         if (!\array_key_exists($name, $this->definitions)) {
             throw new ServiceNotFound($name);
         }
