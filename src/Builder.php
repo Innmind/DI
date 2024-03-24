@@ -30,9 +30,9 @@ final class Builder
     /**
      * @param callable(Container): object $definition
      */
-    public function add(string|\UnitEnum $name, callable $definition): self
+    public function add(string|Service $name, callable $definition): self
     {
-        if ($name instanceof \UnitEnum) {
+        if ($name instanceof Service) {
             $name = \spl_object_hash($name);
         }
 
