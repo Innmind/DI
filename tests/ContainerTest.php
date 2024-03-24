@@ -9,11 +9,12 @@ use Innmind\DI\{
     Exception\ServiceNotFound,
     Exception\CircularDependency,
 };
-use PHPUnit\Framework\TestCase;
 use Innmind\BlackBox\{
     PHPUnit\BlackBox,
+    PHPUnit\Framework\TestCase,
     Set,
 };
+use Fixtures\Innmind\DI\Services;
 
 class ContainerTest extends TestCase
 {
@@ -66,7 +67,7 @@ class ContainerTest extends TestCase
                 Set\Unicode::strings(),
                 Set\Unicode::strings(),
             )
-            ->filter(fn($a, $b) => $a !== $b)
+            ->filter(static fn($a, $b) => $a !== $b)
             ->then(function($name, $dependency) {
                 $container = Builder::new()
                     ->add($name, static fn($get) => $get($dependency))
@@ -84,7 +85,7 @@ class ContainerTest extends TestCase
                 Set\Unicode::strings(),
                 Set\Unicode::strings(),
             )
-            ->filter(fn($a, $b) => $a !== $b)
+            ->filter(static fn($a, $b) => $a !== $b)
             ->then(function($name, $dependency) {
                 $container = Builder::new()
                     ->add($name, static fn($get) => $get($dependency))
@@ -98,5 +99,15 @@ class ContainerTest extends TestCase
                     $this->assertSame("$name > $dependency > $name", $e->getMessage());
                 }
             });
+    }
+
+    public function testEnumCaseCanBeUsedToReferenceAService()
+    {
+        $expected = new \stdClass;
+        $container = Builder::new()
+            ->add(Services::a, static fn() => $expected)
+            ->build();
+
+        $this->assertSame($expected, $container(Services::a));
     }
 }

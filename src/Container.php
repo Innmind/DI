@@ -28,12 +28,25 @@ final class Container
     }
 
     /**
+     * @template T of object
+     * @template N of string|Service<T>
+     *
+     * @param N $name
+     *
      * @throws ServiceNotFound
      * @throws CircularDependency
+     *
+     * @return (N is string ? object : T)
      */
-    public function __invoke(string $name): object
+    public function __invoke(string|Service $name): object
     {
+        if ($name instanceof Service) {
+            $name = \spl_object_hash($name);
+        }
+
+        /** @psalm-suppress PossiblyInvalidArgument */
         if (!\array_key_exists($name, $this->definitions)) {
+            /** @psalm-suppress PossiblyInvalidArgument */
             throw new ServiceNotFound($name);
         }
 
@@ -42,12 +55,15 @@ final class Container
             $path[] = $name;
             $this->building = [];
 
+            /** @psalm-suppress InvalidArgument */
             throw new CircularDependency(\implode(' > ', $path));
         }
 
+        /** @psalm-suppress InvalidPropertyAssignmentValue */
         $this->building[] = $name;
 
         try {
+            /** @psalm-suppress InvalidPropertyAssignmentValue */
             return $this->services[$name] ??= ($this->definitions[$name])($this);
         } finally {
             \array_pop($this->building);
