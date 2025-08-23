@@ -9,96 +9,68 @@ use Innmind\DI\{
     Exception\ServiceNotFound,
     Exception\CircularDependency,
 };
-use Innmind\BlackBox\{
-    PHPUnit\BlackBox,
-    PHPUnit\Framework\TestCase,
-    Set,
-};
+use Innmind\BlackBox\PHPUnit\Framework\TestCase;
 use Fixtures\Innmind\DI\Services;
 
 class ContainerTest extends TestCase
 {
-    use BlackBox;
-
     public function testInterface()
     {
         $this->assertInstanceOf(Container::class, Builder::new()->build());
     }
 
-    public function testConstructingTheDefinitionsIsImmutable(): BlackBox\Proof
+    public function testConstructingTheDefinitionsIsImmutable()
     {
-        return $this
-            ->forAll(Set::strings()->unicode())
-            ->prove(function($name) {
-                $container = Builder::new();
-                $container2 = $container->add($name, static fn() => new \stdClass);
+        $container = Builder::new();
+        $container2 = $container->add(Services::name, static fn() => new \stdClass);
 
-                $this->assertInstanceOf(Builder::class, $container2);
-                $this->assertNotSame($container2, $container);
-                $this->assertInstanceOf(\stdClass::class, $container2->build()($name));
+        $this->assertInstanceOf(Builder::class, $container2);
+        $this->assertNotSame($container2, $container);
+        $this->assertInstanceOf(\stdClass::class, $container2->build()(Services::name));
 
-                try {
-                    $container->build()($name);
-                    $this->fail('it should throw');
-                } catch (\Exception $e) {
-                    $this->assertInstanceOf(ServiceNotFound::class, $e);
-                    $this->assertSame($name, $e->getMessage());
-                }
-            });
+        try {
+            $container->build()(Services::name);
+            $this->fail('it should throw');
+        } catch (\Exception $e) {
+            $this->assertInstanceOf(ServiceNotFound::class, $e);
+            $this->assertSame(\spl_object_hash(Services::name), $e->getMessage());
+        }
     }
 
-    public function testServiceIsOnlyBuiltOnce(): BlackBox\Proof
+    public function testServiceIsOnlyBuiltOnce()
     {
-        return $this
-            ->forAll(Set::strings()->unicode())
-            ->prove(function($name) {
-                $container = Builder::new()
-                    ->add($name, static fn() => new \stdClass)
-                    ->build();
+        $container = Builder::new()
+            ->add(Services::name, static fn() => new \stdClass)
+            ->build();
 
-                $this->assertSame($container($name), $container($name));
-            });
+        $this->assertSame($container(Services::name), $container(Services::name));
     }
 
-    public function testDependenciesCanBeAccesedWhenBuildingService(): BlackBox\Proof
+    public function testDependenciesCanBeAccesedWhenBuildingService()
     {
-        return $this
-            ->forAll(
-                Set::strings()->unicode(),
-                Set::strings()->unicode(),
-            )
-            ->filter(static fn($a, $b) => $a !== $b)
-            ->prove(function($name, $dependency) {
-                $container = Builder::new()
-                    ->add($name, static fn($get) => $get($dependency))
-                    ->add($dependency, static fn() => new \stdClass)
-                    ->build();
+        $container = Builder::new()
+            ->add(Services::name, static fn($get) => $get(Services::dependency))
+            ->add(Services::dependency, static fn() => new \stdClass)
+            ->build();
 
-                $this->assertSame($container($dependency), $container($name));
-            });
+        $this->assertSame($container(Services::dependency), $container(Services::name));
     }
 
-    public function testCircularDependenciesAreIntercepted(): BlackBox\Proof
+    public function testCircularDependenciesAreIntercepted()
     {
-        return $this
-            ->forAll(
-                Set::strings()->unicode(),
-                Set::strings()->unicode(),
-            )
-            ->filter(static fn($a, $b) => $a !== $b)
-            ->prove(function($name, $dependency) {
-                $container = Builder::new()
-                    ->add($name, static fn($get) => $get($dependency))
-                    ->add($dependency, static fn($get) => $get($name))
-                    ->build();
+        $container = Builder::new()
+            ->add(Services::name, static fn($get) => $get(Services::dependency))
+            ->add(Services::dependency, static fn($get) => $get(Services::name))
+            ->build();
 
-                try {
-                    $container($name);
-                    $this->fail('it should throw');
-                } catch (CircularDependency $e) {
-                    $this->assertSame("$name > $dependency > $name", $e->getMessage());
-                }
-            });
+        try {
+            $container(Services::name);
+            $this->fail('it should throw');
+        } catch (CircularDependency $e) {
+            $name = \spl_object_hash(Services::name);
+            $dependency = \spl_object_hash(Services::dependency);
+            $this->assertSame("$name > $dependency > $name", $e->getMessage());
+        }
     }
 
     public function testEnumCaseCanBeUsedToReferenceAService()

@@ -29,18 +29,16 @@ final class Builder
     }
 
     /**
-     * @param string|Service $name Using a string is deprecated
-     * @param callable(Container): object $definition
+     * @template T of object
+     *
+     * @param Service<T> $name Using a string is deprecated
+     * @param callable(Container): T $definition
      */
     #[\NoDiscard]
-    public function add(string|Service $name, callable $definition): self
+    public function add(Service $name, callable $definition): self
     {
-        if ($name instanceof Service) {
-            $name = \spl_object_hash($name);
-        }
-
         $definitions = $this->definitions;
-        $definitions[$name] = $definition;
+        $definitions[\spl_object_hash($name)] = $definition;
 
         return new self($definitions);
     }

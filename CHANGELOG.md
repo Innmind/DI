@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Removed
+
+- Using a `string` as a service name
+
 ## 2.1.0 - 2024-03-24
 
 ### Added

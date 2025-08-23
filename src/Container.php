@@ -29,20 +29,17 @@ final class Container
 
     /**
      * @template T of object
-     * @template N of string|Service<T>
      *
-     * @param N $name
+     * @param Service<T> $name
      *
      * @throws ServiceNotFound
      * @throws CircularDependency
      *
-     * @return (N is string ? object : T)
+     * @return T
      */
-    public function __invoke(string|Service $name): object
+    public function __invoke(Service $name): object
     {
-        if ($name instanceof Service) {
-            $name = \spl_object_hash($name);
-        }
+        $name = \spl_object_hash($name);
 
         /** @psalm-suppress PossiblyInvalidArgument */
         if (!\array_key_exists($name, $this->definitions)) {
@@ -63,7 +60,10 @@ final class Container
         $this->building[] = $name;
 
         try {
-            /** @psalm-suppress InvalidPropertyAssignmentValue */
+            /**
+             * @psalm-suppress InvalidPropertyAssignmentValue
+             * @var T
+             */
             return $this->services[$name] ??= ($this->definitions[$name])($this);
         } finally {
             \array_pop($this->building);
