@@ -12,6 +12,8 @@ use Innmind\DI\Service;
 enum Services implements Service
 {
     case a;
+    case name;
+    case dependency;
 
     /**
      * @return self<\Exception>

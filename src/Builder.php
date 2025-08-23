@@ -3,20 +3,18 @@ declare(strict_types = 1);
 
 namespace Innmind\DI;
 
+use Innmind\Immutable\Map;
+
 /**
  * @psalm-immutable
  */
 final class Builder
 {
-    /** @var array<string, callable(Container): object> */
-    private array $definitions = [];
-
     /**
-     * @param array<string, callable(Container): object> $definitions
+     * @param Map<Service, callable(Container): object> $definitions
      */
-    private function __construct(array $definitions)
+    private function __construct(private Map $definitions)
     {
-        $this->definitions = $definitions;
     }
 
     /**
@@ -25,24 +23,19 @@ final class Builder
     #[\NoDiscard]
     public static function new(): self
     {
-        return new self([]);
+        return new self(Map::of());
     }
 
     /**
-     * @param string|Service $name Using a string is deprecated
-     * @param callable(Container): object $definition
+     * @template T of object
+     *
+     * @param Service<T> $name Using a string is deprecated
+     * @param callable(Container): T $definition
      */
     #[\NoDiscard]
-    public function add(string|Service $name, callable $definition): self
+    public function add(Service $name, callable $definition): self
     {
-        if ($name instanceof Service) {
-            $name = \spl_object_hash($name);
-        }
-
-        $definitions = $this->definitions;
-        $definitions[$name] = $definition;
-
-        return new self($definitions);
+        return new self($this->definitions->put($name, $definition));
     }
 
     #[\NoDiscard]
