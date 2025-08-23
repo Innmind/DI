@@ -7,11 +7,10 @@ use Innmind\DI\Exception\{
     ServiceNotFound,
     CircularDependency,
 };
+use Innmind\Immutable\Map;
 
 final class Container
 {
-    /** @var array<string, callable(self): object> */
-    private array $definitions;
     /** @var array<string, object> */
     private array $services = [];
     /** @var list<string> */
@@ -20,11 +19,10 @@ final class Container
     /**
      * @psalm-mutation-free
      *
-     * @param array<string, callable(self): object> $definitions
+     * @param Map<Service, callable(self): object> $definitions
      */
-    private function __construct(array $definitions)
+    private function __construct(private Map $definitions)
     {
-        $this->definitions = $definitions;
     }
 
     /**
@@ -39,17 +37,15 @@ final class Container
      */
     public function __invoke(Service $name): object
     {
-        $name = \spl_object_hash($name);
+        $hash = \spl_object_hash($name);
+        $definition = $this->definitions->get($name)->match(
+            static fn($definition) => $definition,
+            static fn() => throw new ServiceNotFound($hash),
+        );
 
-        /** @psalm-suppress PossiblyInvalidArgument */
-        if (!\array_key_exists($name, $this->definitions)) {
-            /** @psalm-suppress PossiblyInvalidArgument */
-            throw new ServiceNotFound($name);
-        }
-
-        if (\in_array($name, $this->building, true)) {
+        if (\in_array($hash, $this->building, true)) {
             $path = $this->building;
-            $path[] = $name;
+            $path[] = $hash;
             $this->building = [];
 
             /** @psalm-suppress InvalidArgument */
@@ -57,14 +53,14 @@ final class Container
         }
 
         /** @psalm-suppress InvalidPropertyAssignmentValue */
-        $this->building[] = $name;
+        $this->building[] = $hash;
 
         try {
             /**
              * @psalm-suppress InvalidPropertyAssignmentValue
              * @var T
              */
-            return $this->services[$name] ??= ($this->definitions[$name])($this);
+            return $this->services[$hash] ??= $definition($this);
         } finally {
             \array_pop($this->building);
         }
@@ -73,9 +69,9 @@ final class Container
     /**
      * @psalm-pure
      *
-     * @param array<string, callable(self): object> $definitions
+     * @param Map<Service, callable(self): object> $definitions
      */
-    public static function of(array $definitions): self
+    public static function of(Map $definitions): self
     {
         return new self($definitions);
     }
