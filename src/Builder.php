@@ -22,6 +22,7 @@ final class Builder
     /**
      * @psalm-pure
      */
+    #[\NoDiscard]
     public static function new(): self
     {
         return new self([]);
@@ -31,6 +32,7 @@ final class Builder
      * @param string|Service $name Using a string is deprecated
      * @param callable(Container): object $definition
      */
+    #[\NoDiscard]
     public function add(string|Service $name, callable $definition): self
     {
         if ($name instanceof Service) {
@@ -43,6 +45,7 @@ final class Builder
         return new self($definitions);
     }
 
+    #[\NoDiscard]
     public function build(): Container
     {
         return Container::of($this->definitions);
