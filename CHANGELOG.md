@@ -6,6 +6,10 @@
 
 - Using a `string` as a service name
 
+### Fixed
+
+- Service names in exception messages that used object hashes
+
 ## 2.1.0 - 2024-03-24
 
 ### Added
