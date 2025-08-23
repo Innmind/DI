@@ -10,23 +10,23 @@ use Innmind\DI\Exception\{
 use Innmind\Immutable\{
     Map,
     Sequence,
+    Maybe,
     Str,
 };
 
 final class Container
 {
-    /** @var array<string, object> */
-    private array $services = [];
-
     /**
      * @psalm-mutation-free
      *
      * @param Map<Service, callable(self): object> $definitions
      * @param Sequence<Service> $building
+     * @param Map<Service, \WeakReference<object>> $services
      */
     private function __construct(
         private Map $definitions,
         private Sequence $building,
+        private Map $services,
     ) {
     }
 
@@ -75,7 +75,22 @@ final class Container
              * @psalm-suppress InvalidPropertyAssignmentValue
              * @var T
              */
-            return $this->services[\spl_object_hash($name)] ??= $definition($this);
+            return $this
+                ->services
+                ->get($name)
+                ->flatMap(static fn($service) => Maybe::of($service->get()))
+                ->match(
+                    static fn($service) => $service,
+                    function() use ($name, $definition) {
+                        $service = $definition($this);
+                        $this->services = $this->services->put(
+                            $name,
+                            \WeakReference::create($service),
+                        );
+
+                        return $service;
+                    },
+                );
         } finally {
             $this->building = $this->building->dropEnd(1);
         }
@@ -88,6 +103,10 @@ final class Container
      */
     public static function of(Map $definitions): self
     {
-        return new self($definitions, Sequence::of());
+        return new self(
+            $definitions,
+            Sequence::of(),
+            Map::of(),
+        );
     }
 }

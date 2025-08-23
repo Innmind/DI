@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Unused services are freed from memory
+
 ### Removed
 
 - Using a `string` as a service name
