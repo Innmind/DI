@@ -10,6 +10,7 @@ use Innmind\DI\Exception\{
 use Innmind\Immutable\{
     Map,
     Sequence,
+    Maybe,
     Str,
 };
 
@@ -20,7 +21,7 @@ final class Container
      *
      * @param Map<Service, callable(self): object> $definitions
      * @param Sequence<Service> $building
-     * @param Map<Service, object> $services
+     * @param Map<Service, \WeakReference<object>> $services
      */
     private function __construct(
         private Map $definitions,
@@ -77,11 +78,15 @@ final class Container
             return $this
                 ->services
                 ->get($name)
+                ->flatMap(static fn($service) => Maybe::of($service->get()))
                 ->match(
                     static fn($service) => $service,
                     function() use ($name, $definition) {
                         $service = $definition($this);
-                        $this->services = $this->services->put($name, $service);
+                        $this->services = $this->services->put(
+                            $name,
+                            \WeakReference::create($service),
+                        );
 
                         return $service;
                     },

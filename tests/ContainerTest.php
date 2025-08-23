@@ -80,4 +80,20 @@ class ContainerTest extends TestCase
 
         $this->assertSame($expected, $container(Services::a));
     }
+
+    public function testServicesAreFreedFromMemoryWhenUnused()
+    {
+        $called = 0;
+        $container = Builder::new()
+            ->add(Services::name, static function() use (&$called) {
+                ++$called;
+
+                return new \stdClass;
+            })
+            ->build();
+
+        $container(Services::name);
+        $this->assertInstanceOf(\stdClass::class, $container(Services::name));
+        $this->assertSame(2, $called);
+    }
 }
