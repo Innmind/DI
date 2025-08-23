@@ -33,7 +33,7 @@ class ContainerTest extends TestCase
             $this->fail('it should throw');
         } catch (\Exception $e) {
             $this->assertInstanceOf(ServiceNotFound::class, $e);
-            $this->assertSame(\spl_object_hash(Services::name), $e->getMessage());
+            $this->assertSame('Fixtures\Innmind\DI\Services::name', $e->getMessage());
         }
     }
 
@@ -67,9 +67,7 @@ class ContainerTest extends TestCase
             $container(Services::name);
             $this->fail('it should throw');
         } catch (CircularDependency $e) {
-            $name = \spl_object_hash(Services::name);
-            $dependency = \spl_object_hash(Services::dependency);
-            $this->assertSame("$name > $dependency > $name", $e->getMessage());
+            $this->assertSame("Fixtures\Innmind\DI\Services::name > Fixtures\Innmind\DI\Services::dependency > Fixtures\Innmind\DI\Services::name", $e->getMessage());
         }
     }
 

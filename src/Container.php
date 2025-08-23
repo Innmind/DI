@@ -7,22 +7,27 @@ use Innmind\DI\Exception\{
     ServiceNotFound,
     CircularDependency,
 };
-use Innmind\Immutable\Map;
+use Innmind\Immutable\{
+    Map,
+    Sequence,
+    Str,
+};
 
 final class Container
 {
     /** @var array<string, object> */
     private array $services = [];
-    /** @var list<string> */
-    private array $building = [];
 
     /**
      * @psalm-mutation-free
      *
      * @param Map<Service, callable(self): object> $definitions
+     * @param Sequence<Service> $building
      */
-    private function __construct(private Map $definitions)
-    {
+    private function __construct(
+        private Map $definitions,
+        private Sequence $building,
+    ) {
     }
 
     /**
@@ -37,32 +42,42 @@ final class Container
      */
     public function __invoke(Service $name): object
     {
-        $hash = \spl_object_hash($name);
         $definition = $this->definitions->get($name)->match(
             static fn($definition) => $definition,
-            static fn() => throw new ServiceNotFound($hash),
+            static fn() => throw new ServiceNotFound(\sprintf(
+                '%s::%s',
+                $name::class,
+                $name->name,
+            )),
         );
 
-        if (\in_array($hash, $this->building, true)) {
-            $path = $this->building;
-            $path[] = $hash;
-            $this->building = [];
+        if ($this->building->contains($name)) {
+            $path = $this->building->add($name);
+            $this->building = $this->building->clear();
 
             /** @psalm-suppress InvalidArgument */
-            throw new CircularDependency(\implode(' > ', $path));
+            throw new CircularDependency(
+                Str::of(' > ')
+                    ->join($path->map(static fn($service) => \sprintf(
+                        '%s::%s',
+                        $service::class,
+                        $service->name,
+                    )))
+                    ->toString(),
+            );
         }
 
         /** @psalm-suppress InvalidPropertyAssignmentValue */
-        $this->building[] = $hash;
+        $this->building = $this->building->add($name);
 
         try {
             /**
              * @psalm-suppress InvalidPropertyAssignmentValue
              * @var T
              */
-            return $this->services[$hash] ??= $definition($this);
+            return $this->services[\spl_object_hash($name)] ??= $definition($this);
         } finally {
-            \array_pop($this->building);
+            $this->building = $this->building->dropEnd(1);
         }
     }
 
@@ -73,6 +88,6 @@ final class Container
      */
     public static function of(Map $definitions): self
     {
-        return new self($definitions);
+        return new self($definitions, Sequence::of());
     }
 }
