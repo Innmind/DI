@@ -7,76 +7,106 @@ use Innmind\DI\Exception\{
     ServiceNotFound,
     CircularDependency,
 };
+use Innmind\Immutable\{
+    Map,
+    Sequence,
+    Maybe,
+    Str,
+};
 
 final class Container
 {
-    /** @var array<string, callable(self): object> */
-    private array $definitions;
-    /** @var array<string, object> */
-    private array $services = [];
-    /** @var list<string> */
-    private array $building = [];
-
     /**
      * @psalm-mutation-free
      *
-     * @param array<string, callable(self): object> $definitions
+     * @param Map<Service, callable(self): object> $definitions
+     * @param Sequence<Service> $building
+     * @param Map<Service, \WeakReference<object>> $services
      */
-    private function __construct(array $definitions)
-    {
-        $this->definitions = $definitions;
+    private function __construct(
+        private Map $definitions,
+        private Sequence $building,
+        private Map $services,
+    ) {
     }
 
     /**
      * @template T of object
-     * @template N of string|Service<T>
      *
-     * @param N $name
+     * @param Service<T> $name
      *
      * @throws ServiceNotFound
      * @throws CircularDependency
      *
-     * @return (N is string ? object : T)
+     * @return T
      */
-    public function __invoke(string|Service $name): object
+    public function __invoke(Service $name): object
     {
-        if ($name instanceof Service) {
-            $name = \spl_object_hash($name);
-        }
+        $definition = $this->definitions->get($name)->match(
+            static fn($definition) => $definition,
+            static fn() => throw new ServiceNotFound(\sprintf(
+                '%s::%s',
+                $name::class,
+                $name->name,
+            )),
+        );
 
-        /** @psalm-suppress PossiblyInvalidArgument */
-        if (!\array_key_exists($name, $this->definitions)) {
-            /** @psalm-suppress PossiblyInvalidArgument */
-            throw new ServiceNotFound($name);
-        }
-
-        if (\in_array($name, $this->building, true)) {
-            $path = $this->building;
-            $path[] = $name;
-            $this->building = [];
+        if ($this->building->contains($name)) {
+            $path = $this->building->add($name);
+            $this->building = $this->building->clear();
 
             /** @psalm-suppress InvalidArgument */
-            throw new CircularDependency(\implode(' > ', $path));
+            throw new CircularDependency(
+                Str::of(' > ')
+                    ->join($path->map(static fn($service) => \sprintf(
+                        '%s::%s',
+                        $service::class,
+                        $service->name,
+                    )))
+                    ->toString(),
+            );
         }
 
         /** @psalm-suppress InvalidPropertyAssignmentValue */
-        $this->building[] = $name;
+        $this->building = $this->building->add($name);
 
         try {
-            /** @psalm-suppress InvalidPropertyAssignmentValue */
-            return $this->services[$name] ??= ($this->definitions[$name])($this);
+            /**
+             * @psalm-suppress InvalidPropertyAssignmentValue
+             * @var T
+             */
+            return $this
+                ->services
+                ->get($name)
+                ->flatMap(static fn($service) => Maybe::of($service->get()))
+                ->match(
+                    static fn($service) => $service,
+                    function() use ($name, $definition) {
+                        $service = $definition($this);
+                        $this->services = $this->services->put(
+                            $name,
+                            \WeakReference::create($service),
+                        );
+
+                        return $service;
+                    },
+                );
         } finally {
-            \array_pop($this->building);
+            $this->building = $this->building->dropEnd(1);
         }
     }
 
     /**
      * @psalm-pure
      *
-     * @param array<string, callable(self): object> $definitions
+     * @param Map<Service, callable(self): object> $definitions
      */
-    public static function of(array $definitions): self
+    public static function of(Map $definitions): self
     {
-        return new self($definitions);
+        return new self(
+            $definitions,
+            Sequence::of(),
+            Map::of(),
+        );
     }
 }
