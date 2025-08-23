@@ -25,11 +25,11 @@ class ContainerTest extends TestCase
         $this->assertInstanceOf(Container::class, Builder::new()->build());
     }
 
-    public function testConstructingTheDefinitionsIsImmutable()
+    public function testConstructingTheDefinitionsIsImmutable(): BlackBox\Proof
     {
-        $this
-            ->forAll(Set\Unicode::strings())
-            ->then(function($name) {
+        return $this
+            ->forAll(Set::strings()->unicode())
+            ->prove(function($name) {
                 $container = Builder::new();
                 $container2 = $container->add($name, static fn() => new \stdClass);
 
@@ -47,11 +47,11 @@ class ContainerTest extends TestCase
             });
     }
 
-    public function testServiceIsOnlyBuiltOnce()
+    public function testServiceIsOnlyBuiltOnce(): BlackBox\Proof
     {
-        $this
-            ->forAll(Set\Unicode::strings())
-            ->then(function($name) {
+        return $this
+            ->forAll(Set::strings()->unicode())
+            ->prove(function($name) {
                 $container = Builder::new()
                     ->add($name, static fn() => new \stdClass)
                     ->build();
@@ -60,15 +60,15 @@ class ContainerTest extends TestCase
             });
     }
 
-    public function testDependenciesCanBeAccesedWhenBuildingService()
+    public function testDependenciesCanBeAccesedWhenBuildingService(): BlackBox\Proof
     {
-        $this
+        return $this
             ->forAll(
-                Set\Unicode::strings(),
-                Set\Unicode::strings(),
+                Set::strings()->unicode(),
+                Set::strings()->unicode(),
             )
             ->filter(static fn($a, $b) => $a !== $b)
-            ->then(function($name, $dependency) {
+            ->prove(function($name, $dependency) {
                 $container = Builder::new()
                     ->add($name, static fn($get) => $get($dependency))
                     ->add($dependency, static fn() => new \stdClass)
@@ -78,15 +78,15 @@ class ContainerTest extends TestCase
             });
     }
 
-    public function testCircularDependenciesAreIntercepted()
+    public function testCircularDependenciesAreIntercepted(): BlackBox\Proof
     {
-        $this
+        return $this
             ->forAll(
-                Set\Unicode::strings(),
-                Set\Unicode::strings(),
+                Set::strings()->unicode(),
+                Set::strings()->unicode(),
             )
             ->filter(static fn($a, $b) => $a !== $b)
-            ->then(function($name, $dependency) {
+            ->prove(function($name, $dependency) {
                 $container = Builder::new()
                     ->add($name, static fn($get) => $get($dependency))
                     ->add($dependency, static fn($get) => $get($name))
